@@ -1,25 +1,23 @@
-'''
-    {Script used in order to generate .tex statistics from different results
-    obtained from running Vampire in different modes. }
-    Copyright (C) {2014} {Ioan Dragan}
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-'''
-
 #!/usr/bin/env python 
+
+# {Script used in order to generate .tex statistics from different results
+# obtained from running Vampire in different modes. }
+# Copyright (C) {2014} {Ioan Dragan}
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 
 import sys, os, time
 import re 
@@ -53,6 +51,7 @@ def existsProblem(name):
     for i in range(0, len(_problemList)):
         if(name == _problemList[i].name):
             return i
+
     return -1
 from os import path
 # % SZS status
@@ -76,46 +75,68 @@ def createProblemStatistics(fileLines):
         break
     
     done = 0
-    for i in fileLines: 
+    for i,index in zip(fileLines, range(len(fileLines))): 
         if i.startswith("STRATEGY_NO"):
-            # it means we have a new problem
-            # now get the name of the problem
-            splittedLine = i.split(" ")
-            prbName = splittedLine[3]
-            
-            strategy = i.split("ARGS=")
-            strateg = strategy[1].strip("\n")
-            st = strateg.split(" ")
-            strateg = st[1]
-            done = 0
-        if cascModeOn == False:
-            if i.startswith("Termination reason: "):
-                term = i.split(":")
-                termReason = term[1].strip("\n")
-            if i.startswith("Time elapsed: "):
-                timeS = i.split(":")
-                timeStat = timeS[1]
-                idx = existsProblem(prbName);
-            
+            # write down statistics
+            if done != 0:
+                idx = existsProblem(prbName)
+                if timeStat == "":
+                    timeStat= "60.0"
+                if termReason == "":
+                    termReason = "ERROR"
+
                 if not(idx==-1):
                     _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
                 else:
                     _problemList.append(Problem(prbName,termReason,timeStat,strateg))
-                    
-        else: 
+                termReason = ""
+                timeStat = ""
+                strateg = ""
+                prbName = ""
+            # it means we have a new problem
+            # now get the name of the problem
+            splittedLine = i.split(" ")
+            #print splittedLine 
+            
+            prbName = splittedLine[3].strip()
+            if prbName == "" :
+                print "failed at line : "+str(index)
+                #print "failed Line from file:  "+ fileLines[index]
+                for j in range(index, len(fileLines)):
+                    if " on " in fileLines[j] and not (fileLines[j].startswith("STRATEGY_NO")):
+                        spl = fileLines[j].split(" on ")
+                        prbName = spl[1].strip("\n")+".p"
+                        print prbName
+                        break
+                #sys.exit(1)
+                
+        if cascModeOn == False:
+            if i.startswith("Termination reason: "):
+                term = i.split(":")
+                termReason = term[1].strip("\n")
+                done = done + 1
+            if i.startswith("Time elapsed: "):
+                timeS = i.split(":")
+                timeStat = timeS[1]
+                done = done + 1
+                #idx = existsProblem(prbName);
+                #
+                #if not(idx==-1):
+                #    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
+                #else:
+                #    _problemList.append(Problem(prbName,termReason,timeStat,strateg))
+                #    
+        else:  
   
             if i.startswith("% SZS status"):
                 stat = i.split(" ")
                 termReason = stat[3]
-                done = done + 1        
-
-            
+    
             if i.startswith("% Proof not found"):
                 time = i.split(" ")
                 timeStat = time[6]
-                done = done + 1
                 #idx = existsProblem(prbName);
-            
+            done = done + 1 
                 #if not(idx==-1):
                 #    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
                 #else:
@@ -132,16 +153,26 @@ def createProblemStatistics(fileLines):
                 #    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
                 #else:
                 #    _problemList.append(Problem(prbName,termReason,timeStat,strategy))
-            if done == 2 :
-                
-                idx = existsProblem(prbName);
-                
-                if not(idx==-1):
-                    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
-                else:
-                    _problemList.append(Problem(prbName,termReason,timeStat,strategy))
-                done = 0
+            #if done == 2 :
+            #    
+            #    idx = existsProblem(prbName);
+            #    print prbName
+            #    print timeStat
+            #    
+            #    
+            #    if not(idx==-1):
+            #        _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
+            #    else:
+            #        _problemList.append(Problem(prbName,termReason,timeStat,strategy))
+            #    done = 0
 
+    idx = existsProblem(prbName)
+    
+    if not(idx==-1):
+        _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
+    else:
+        _problemList.append(Problem(prbName,termReason,timeStat,strategy))
+        
 def write(fout, array):
     for i in range(0, len(array)):
         fout.write( " & " + str(array[i]) )
@@ -201,11 +232,13 @@ def printStat(FILE, howMany):
                 fout.write("& RNF:"+prb.timeStatistics[i])
                 
             elif ("Refutation" in prb.terminationReason[i] or "Theorem" in prb.terminationReason[i]):
-                fout.write("& R:"+prb.timeStatistics[i])
+                fout.write(" & R:"+prb.timeStatistics[i])
             elif (prb.terminationReason[i]=="GaveUp"):
-                fout.write("& G:"+prb.timeStatistics[i])
+                fout.write(" & G:"+prb.timeStatistics[i])
+            elif prb.terminationReason[i]=="ERROR":
+                fout.write(" & ERROR")
             else :
-                fout.write("& T:"+prb.timeStatistics[i])
+                fout.write(" & T:"+prb.timeStatistics[i])
                 
         #for tReason in prb.terminationReason:
         #    fout.write(" & "+tReason )
@@ -228,7 +261,6 @@ def printStat(FILE, howMany):
     avgUnsatTime = []
     noSatProb = []
     noRefProb = []
-    
     
     for i in range(0,howMany-1):
         avgSatTime.append(0)
@@ -284,6 +316,7 @@ def loadFiles( inputFiles ):
 
     #load files one by one and preprocess them 
     for i in range(1, len(inputFiles)):
+        print i
         # for each file in the command line read it and do the preprocessing 
         if not path.exists(inputFiles[i]) : 
             print " There is no such file to open " 
@@ -300,19 +333,48 @@ def loadFiles( inputFiles ):
         
     #add the statistics from each of the problesm in the corresponding problem
     
+def scriptLoadFile(filename):
+    if not path.exists(filename) : 
+        print " There is no such file to open " 
+        sys.exit(1)
+        
+    fileIn = open(filename,"r")
+    #read all the lines from the file 
+    # this way could be really slow
+    lines = fileIn.readlines()
+    #create problems
+    createProblemStatistics(lines)
 
-
+def generateTwoStat(directory):
+    if not path.exists(directory):
+        print "Directory not exsistent"
+        sys.exit(1)
+    dirName = ""
+    for i in range(5,10):
+        splDir = directory.strip().split("/")
+        dirName = splDir[len(splDir)-2].split(".")[0]
+        filename = dirName+"_vampire_"+dirName+"."+str(i)+".out"
+        if not path.exists(directory+filename):
+            print " no such file" + filename
+        else :
+            print "generating statistics file "+ str(i)+ "out of 5"
+            scriptLoadFile(directory+filename)
+    printStat(dirName+"_NON_CASC", 6)
+    '''
+    dirname+"_vampire_"+dirname+"0-9.out"
+    '''
 def generateStatistics() : 
     print "generated statistics" 
 
 if __name__ == '__main__':
     #load the files and create the list of problems with the according statistics 
-    loadFiles(sys.argv)
+    #loadFiles(sys.argv)
+    generateTwoStat(sys.argv[1])
     #generate statistics 
-    generateStatistics()
-    if(len(sys.argv)>1):
-        sp = sys.argv[1].split("/")
-        extra = sp[len(sp)-1].split("_")
-        extraName = extra[0]
-        printStat(extraName, len(sys.argv))
-    
+    #printStat("test", 11)
+    #if(len(sys.argv)>1):
+    #    sp = sys.argv[1].split("/")
+    #    extra = sp[len(sp)-1].split("_")
+    #    extraName = extra[0]
+    #    printStat(extraName, len(sys.argv))
+    #
