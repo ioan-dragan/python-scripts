@@ -61,6 +61,25 @@ def getUpTermination(fileList, index):
 # % Proof not found in
 # % Success in time 
 
+def getProblemStat(fileLines, idx):
+    timeStat = ""
+    termReason = ""
+    i = idx + 1
+    
+    while i < len(fileLines) and not( fileLines[i].startswith("STRATEGY_NO")) :
+        #print splittedLine 
+        line = fileLines[i]
+        if line.startswith("Termination reason: "):
+            term = line.split(":")
+            termReason = term[1].strip("\n")
+            
+        if line.startswith("Time elapsed: "):
+            timeS = line.split(":")
+            timeStat = timeS[1]
+            
+        i = i + 1
+    return (timeStat.strip(), termReason)
+
 def createProblemStatistics(fileLines, counter):
     prbName = ""
     termReason = ""
@@ -76,63 +95,34 @@ def createProblemStatistics(fileLines, counter):
             else :
                 cascModeOn = False
                 print "NONCASC"
+                
         break
-    if counter > 6:
+    if counter >= 6:
         counter = counter - 5;
     done = 0
     print str(counter)+"  <= Counter"
     for i,index in zip(fileLines, range(len(fileLines))): 
+        termReason = ""
+        timeStat = ""
+        prbName = ""
+            
         if i.startswith("STRATEGY_NO"):
             # write down statistics
-            if done != 0:
-                idx = existsProblem(prbName)
-                if timeStat == "":
-                    timeStat= "600.0"
-                if termReason == "":
-                    termReason = "ERROR"
-                    termReason = getUpTermination(fileLines, i)
-                    # try to recover so that we get better statistics 
-                    # go from the current index upwords in the file until we reach the STRATEGY_NO
-                    # if we have not that much than we can safely assume ERROR termReason = getUpTermination(fileLines, i)
-
-                if not(idx==-1) :
-                    while(len(_problemList[idx].terminationReason) < counter-1):
-                        _problemList[idx].addNewStatistics("NOT_FOUND", "360","none")
-                        
-                    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
-                else:
-                    if counter > 1:
-                        print "ERROR"
-                        _problemList.append(Problem(prbName, "NOT_FOUND","360",str(counter)))
-                        newIdx = existsProblem(prbName)
-                        while(len(_problemList[newIdx].terminationReason) < counter-1):
-                            _problemList[newIdx].addNewStatistics("NOT_FOUND", "360","none")
-                        _problemList[newIdx].addNewStatistics(termReason,timeStat, strateg)
-                    else :    
-                        _problemList.append(Problem(prbName,termReason,timeStat,strateg))
-                #if not(idx==-1):
-                #    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
-                #else:
-                #    if counter == 1:
-                #        _problemList.append(Problem(prbName,termReason,timeStat,strateg))
-                #    else:
-                #        #print "ERROR"
-                #        _problemList.append(Problem(prbName, "NOT_FOUND","360","none"))
-                #        newIdx = existsProblem(prbName)
-                #        for t in range(1,counter-1):
-                #            _problemList[newIdx].addNewStatistics("NOT_FOUND", "360","none")
-                #            
-                #        _problemList[newIdx].addNewStatistics(termReason, timeStat,strateg)
-                #    
-                termReason = ""
-                timeStat = ""
-                strateg = ""
-                prbName = ""
-            # it means we have a new problem
-            # now get the name of the problem
-            splittedLine = i.split(" ")
-            #print splittedLine 
             
+            if ( (len(fileLines)-index) > 2): 
+                (timeStat,termReason) = getProblemStat(fileLines, index)
+ 
+            term = timeStat.split(" ")
+            if len(term) < 2:
+                termReason = "NOT_FOUND"
+                timeStat = "360"
+            else:
+                timeStat = term[0]
+    #        # it means we have a new problem
+    #        # now get the name of the problem
+            splittedLine = i.split(" ")
+    #        #print splittedLine 
+    #        
             prbName = splittedLine[3].strip()
             prbName = prbName.strip("%")
             if prbName == "" :
@@ -145,81 +135,37 @@ def createProblemStatistics(fileLines, counter):
                         print prbName
                         break
                 sys.exit(1)
+            print "add stat: ",prbName, termReason, timeStat
+            
+            idx = existsProblem(prbName)
+            if not(idx==-1) :
+                while(len(_problemList[idx].terminationReason) < counter-1):
+                    _problemList[idx].addNewStatistics("NOT_FOUND", "360","none")
+                    
+                _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
+            else:
+                if counter > 1:
+                    print "ERROR"
+                    _problemList.append(Problem(prbName, "NOT_FOUND","360",str(counter)))
+                    newIdx = existsProblem(prbName)
+                    while(len(_problemList[newIdx].terminationReason) < counter-1):
+                        _problemList[newIdx].addNewStatistics("NOT_FOUND", "360","none")
+                    _problemList[newIdx].addNewStatistics(termReason,timeStat, strateg)
+                else :    
+                    _problemList.append(Problem(prbName,termReason,timeStat,strateg))
                 
-        if cascModeOn == False:
-            if i.startswith("Termination reason: "):
-                term = i.split(":")
-                termReason = term[1].strip("\n")
-                done = done + 1
-            if i.startswith("Time elapsed: "):
-                timeS = i.split(":")
-                timeStat = timeS[1]
-                done = done + 1
-                #idx = existsProblem(prbName);
-                #
-                #if not(idx==-1):
-                #    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
-                #else:
-                #    _problemList.append(Problem(prbName,termReason,timeStat,strateg))
-                #    
-        else:  
-  
-            if i.startswith("% SZS status"):
-                stat = i.split(" ")
-                termReason = stat[3]
-    
-            if i.startswith("% Proof not found"):
-                time = i.split(" ")
-                timeStat = time[6].strip("%")
-                #idx = existsProblem(prbName);
-            done = done + 1 
-                #if not(idx==-1):
-                #    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
-                #else:
-                #    _problemList.append(Problem(prbName,termReason,timeStat,strateg))
-                ##print timeStat
-            
-            if i.startswith("% Success in time"):
-                time = i.split(" ")
-                timeStat = time[4].strip("%")
-                done = done + 1
-                #print timeStat
-                #idx = existsProblem(prbName)
-                #if not(idx==-1):
-                #    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
-                #else:
-                #    _problemList.append(Problem(prbName,termReason,timeStat,strategy))
-            #if done == 2 :
-            #    
-            #    idx = existsProblem(prbName);
-            #    print prbName
-            #    print timeStat
-            #    
-            #    
-            #    if not(idx==-1):
-            #        _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
-            #    else:
-            #        _problemList.append(Problem(prbName,termReason,timeStat,strategy))
-            #    done = 0
-
-    idx = existsProblem(prbName)
-    
-    if not(idx==-1) :
-        while(len(_problemList[idx].terminationReason) < counter-1):
-            _problemList[idx].addNewStatistics("NOT_FOUND", "360","none")
-            
-        _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
-    else:
-        if counter > 1:
-            print "ERROR"
-            _problemList.append(Problem(prbName, "NOT_FOUND","360",str(counter)))
-            newIdx = existsProblem(prbName)
-            while(len(_problemList[newIdx].terminationReason) < counter-1):
-                _problemList[newIdx].addNewStatistics("NOT_FOUND", "360","none")
-            _problemList[newIdx].addNewStatistics(termReason,timeStat, strateg)
-        else :    
-            _problemList.append(Problem(prbName,termReason,timeStat,strateg))
-
+    #    if cascModeOn == False:
+    #        if i.startswith("Termination reason: "):
+    #            term = i.split(":")
+    #            termReason = term[1].strip("\n")
+    #            done = done + 1
+    #        if i.startswith("Time elapsed: "):
+    #            timeS = i.split(":")
+    #            timeStat = timeS[1]
+    #            done = done + 1
+    #
+    #idx = existsProblem(prbName)
+    #
     #if not(idx==-1):
     #    _problemList[idx].addNewStatistics(termReason, timeStat,strateg)
     #else:
@@ -347,7 +293,6 @@ def printStat(FILE, howMany):
     for prb in _problemList:
         for idx in range(0,len(prb.terminationReason)):
         # for idx in range(0,howMany-1):
-            #print idx
             #print prb.terminationReason
             if "Satisfiable" in prb.terminationReason[idx]:
                 #print prb.name
@@ -487,51 +432,27 @@ def generateTwoStat(directory, flag):
         print "Directory not exsistent"
         sys.exit(1)
     dirName = ""
-    for i in range(0,5):
+    for i in range(5,10):
         splDir = directory.strip().split("/")
         dirName = splDir[len(splDir)-2].split(".")[0]
         filename = dirName+"_vampire_"+dirName+"."+str(i)+".out"
         if not path.exists(directory+filename):
             print " no such file" + filename
+            sys.exit()
         else :
             print "generating statistics file "+ str(i)+ "out of 5"
-            print filename + "  "+ str(i)
+            print filename + "  "+ str(i-4)
             scriptLoadFile(directory+filename, (i)+1)
     if flag == True:
         printStat(dirName+"_CASC", 6)
-    '''
-    dirname+"_vampire_"+dirname+"0-9.out"
-    '''
-def generateGeneralStat(directory, files):
-    if not path.exists(directory):
-        print "Dir not found"
-        sys.exit(1)
-    
-    dirName = directory.split("/")[1]
-    
-    count = 1
-    
-    for f in files:
-        if not path.exists(directory+"/"+f):
-            print "File not existent"
-            sys.exit(1)
-        else:
-            if "0" in f or "1" in f or "2" in f or "3" in f or "4" in f:
-                print f+"  counter "+str(count)
-                scriptLoadFile(directory+"/"+f, count)
-                count = count + 1
-    
-                   
-            #if str(i) in f:
-            #    scriptLoadFile(directory+"/"+f)
-            #
+
+
     
 def walkTroughDirs(root):
     for subdir, dirs, files in os.walk(root):
         if subdir.endswith(".RES"):
             print subdir
             generateTwoStat(subdir+"/", False)
-            #generateGeneralStat(subdir, files)
     printStat("GeneralStatNonCasc",6) 
 
 if __name__ == '__main__':
@@ -539,12 +460,6 @@ if __name__ == '__main__':
     #loadFiles(sys.argv)
     if int(sys.argv[2]) == 0 : 
         generateTwoStat(sys.argv[1], True)
-    #generate statistics 
-    #printStat("test", 11)
-    #if(len(sys.argv)>1):
-    #    sp = sys.argv[1].split("/")
-    #    extra = sp[len(sp)-1].split("_")
-    #    extraName = extra[0]
-    #    printStat(extraName, len(sys.argv))
+
     else :
         walkTroughDirs(sys.argv[1])
