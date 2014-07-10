@@ -1,0 +1,16 @@
+The scripts from this folder are used in order to generate statistics from Vampire output files. statCasc.py generates statistics from output casc files. 
+
+./statCasc.py folderWithStats/ Output.tex 
+
+it takes as input a folder containig statistics organized in subfolders ending with .RES. eg: ioan/results/A1.RES ...
+and each .RES folder contains output from different strategies. One file per problem and per strategy. Currently the script generates statistics for 
+5 strategies. 
+
+eg: in the folder A1.RES we have : AGT016+1.p.0 AGT016+1.p.1 AGT016+1.p.2 AGT016+1.p.3 AGT016+1.p.4   
+than we get stats from these five files. Not other ones. Just this. Note it is important that the file ends with the strategy number [0:5]
+
+./statDefault.py folderWithStats/ output.tex 
+
+- same constraints as before. 
+
+./splitLog.py . Assuming one has multiple program output from one strategy in a single file (CASC only) this script splits it in multiple files.
